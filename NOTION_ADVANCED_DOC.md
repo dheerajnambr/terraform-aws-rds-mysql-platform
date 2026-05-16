@@ -471,46 +471,29 @@ Result: Neither SG resource depends on the other.
 ### Pipeline Stages Flowchart
 
 ```mermaid
-graph LR
-    subgraph VALIDATE
-        direction LR
-        fmt_check["fmt_check"]
-        validate["validate"]
+flowchart LR
+    subgraph VALIDATE["✅ VALIDATE — auto, all branches"]
+        FMT[fmt_check]
+        VAL[validate]
+    end
+    subgraph PLAN["✅ PLAN — auto, all branches"]
+        P[plan]
+    end
+    subgraph APPLY["✋ APPLY — manual, main only"]
+        AP[apply]
+    end
+    subgraph DPLAN["✋ DESTROY_PLAN — manual, main only"]
+        DP[destroy_plan]
+    end
+    subgraph DEST["✋ DESTROY — manual, main only"]
+        DS[destroy]
     end
 
-    subgraph PLAN
-        direction LR
-        plan["plan"]
-    end
+    VALIDATE --> PLAN --> APPLY
+    P -. "tfplan · expires 1 day" .-> AP
 
-    subgraph APPLY
-        direction LR
-        apply["apply ✋"]
-    end
-
-    subgraph DESTROY_PLAN
-        direction LR
-        destroy_plan["destroy_plan ✋"]
-    end
-
-    subgraph DESTROY
-        direction LR
-        destroy["destroy ✋"]
-    end
-
-    VALIDATE --> PLAN
-    PLAN --> APPLY
-
-    destroy_plan --> DESTROY
-
-    plan -- "tfplan (expires 1 day)" .-> APPLY
-    destroy_plan -- "destroyplan (expires 1 day)" .-> DESTROY
-
-    style VALIDATE fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
-    style PLAN fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
-    style APPLY fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
-    style DESTROY_PLAN fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
-    style DESTROY fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    DPLAN --> DEST
+    DP -. "destroyplan · expires 1 day" .-> DS
 ```
 
 ### Job Details
