@@ -115,7 +115,7 @@ resource "aws_db_instance" "main" {
   apply_immediately          = true
 
   # Default: disabled. Enable in tfvars only if needed (incurs extra cost).
-  lifecycle_support = var.enable_extended_support ? "open-source-rds-extended-support" : "open-source-rds-extended-support-disabled"
+  engine_lifecycle_support = var.enable_extended_support ? "open-source-rds-extended-support" : "open-source-rds-extended-support-disabled"
 
   tags = {
     Name = local.rds_name
