@@ -471,29 +471,17 @@ Result: Neither SG resource depends on the other.
 ### Pipeline Stages Flowchart
 
 ```mermaid
-flowchart LR
-    subgraph VALIDATE["✅ VALIDATE — auto, all branches"]
-        FMT[fmt_check]
-        VAL[validate]
-    end
-    subgraph PLAN["✅ PLAN — auto, all branches"]
-        P[plan]
-    end
-    subgraph APPLY["✋ APPLY — manual, main only"]
-        AP[apply]
-    end
-    subgraph DPLAN["✋ DESTROY_PLAN — manual, main only"]
-        DP[destroy_plan]
-    end
-    subgraph DEST["✋ DESTROY — manual, main only"]
-        DS[destroy]
+flowchart TB
+    subgraph DEPLOY["🚀 Deploy Flow — auto triggers, manual apply"]
+        direction LR
+        FMT["fmt_check ✅"] & VAL["validate ✅"] --> PL["plan ✅"]
+        PL -. "tfplan · expires 1 day" .-> AP["apply ✋ manual · main only"]
     end
 
-    VALIDATE --> PLAN --> APPLY
-    P -. "tfplan · expires 1 day" .-> AP
-
-    DPLAN --> DEST
-    DP -. "destroyplan · expires 1 day" .-> DS
+    subgraph DESTFLOW["💥 Destroy Flow — independent, all manual"]
+        direction LR
+        DP["destroy_plan ✋ manual · main only"] -. "destroyplan · expires 1 day" .-> DS["destroy ✋ manual · main only"]
+    end
 ```
 
 ### Job Details
