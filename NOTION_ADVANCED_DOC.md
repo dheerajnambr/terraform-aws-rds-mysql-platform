@@ -1,6 +1,6 @@
-# RDS MySQL Platform — Advanced Technical Documentation
+# AWS RDS MySQL — Terraform & GitLab CI/CD Setup Guide
 
-> **For use in Notion:** Paste this file into a Notion page. Mermaid diagrams render natively in Notion. All tables and code blocks render correctly. Use "Toggle" blocks to collapse sections.
+> **For use in Notion:** Paste this file into a Notion page. All diagrams, tables, and code blocks render correctly. Use "Toggle" blocks to collapse sections.
 
 ---
 
@@ -51,8 +51,7 @@
 
 ## 2. Architecture Diagrams
 
-### High-Level Architecture (Mermaid)
-
+### High-Level Architecture
 ```mermaid
 graph TB
     subgraph Internet
@@ -91,8 +90,7 @@ graph TB
     BASTION -.->|reads credentials| SSM_PARAM
 ```
 
-### Data Flow — Operator to RDS MySQL (Mermaid)
-
+### Data Flow — Operator to RDS MySQL
 ```mermaid
 sequenceDiagram
     participant OP as Operator Laptop
@@ -111,8 +109,7 @@ sequenceDiagram
     SSM_AGENT-->>OP: MySQL prompt
 ```
 
-### Terraform Dependency Graph (Mermaid)
-
+### Terraform Dependency Graph
 ```mermaid
 graph LR
     VPC[aws_vpc.main] --> IGW[aws_internet_gateway.main]
@@ -474,26 +471,46 @@ Result: Neither SG resource depends on the other.
 ### Pipeline Stages Flowchart
 
 ```mermaid
-flowchart TD
-    PUSH[Git Push to any branch] --> FMT[fmt_check<br/>terraform fmt -check]
-    PUSH --> VAL[validate<br/>terraform validate]
-    FMT --> PLAN[plan<br/>terraform plan -out=tfplan]
-    VAL --> PLAN
-    PLAN --> ART[Artifact: tfplan<br/>expires: 1 day]
+graph LR
+    subgraph VALIDATE
+        direction LR
+        fmt_check["fmt_check"]
+        validate["validate"]
+    end
 
-    ART --> APPLY_GATE{Manual trigger<br/>default branch only}
-    APPLY_GATE -->|Click ▶ in GitLab| APPLY[apply<br/>terraform apply tfplan]
+    subgraph PLAN
+        direction LR
+        plan["plan"]
+    end
 
-    DPLAN_GATE{Manual trigger<br/>default branch only} -->|Click ▶ in GitLab| DPLAN[destroy_plan<br/>terraform plan -destroy]
-    DPLAN --> DART[Artifact: destroyplan<br/>expires: 1 day]
-    DART --> DEST_GATE{Manual trigger<br/>default branch only}
-    DEST_GATE -->|Click ▶ in GitLab| DESTROY[destroy<br/>terraform apply destroyplan]
+    subgraph APPLY
+        direction LR
+        apply["apply ✋"]
+    end
 
-    style APPLY_GATE fill:#f9a825,color:#000
-    style DPLAN_GATE fill:#e53935,color:#fff
-    style DEST_GATE fill:#e53935,color:#fff
-    style DPLAN fill:#e53935,color:#fff
-    style DESTROY fill:#b71c1c,color:#fff
+    subgraph DESTROY_PLAN
+        direction LR
+        destroy_plan["destroy_plan ✋"]
+    end
+
+    subgraph DESTROY
+        direction LR
+        destroy["destroy ✋"]
+    end
+
+    VALIDATE --> PLAN
+    PLAN --> APPLY
+
+    destroy_plan --> DESTROY
+
+    plan -- "tfplan (expires 1 day)" .-> APPLY
+    destroy_plan -- "destroyplan (expires 1 day)" .-> DESTROY
+
+    style VALIDATE fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    style PLAN fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    style APPLY fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    style DESTROY_PLAN fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
+    style DESTROY fill:#fff,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
 ```
 
 ### Job Details
