@@ -1,6 +1,6 @@
-# terraform-aws-aurora-platform
+# terraform-aws-rds-mysql-platform
 
-Terraform infrastructure for Amazon RDS MySQL 8.0 on AWS with a GitLab CI/CD pipeline.
+Terraform infrastructure for Amazon RDS MySQL 8.4 on AWS with a GitLab CI/CD pipeline.
 Deploys a dedicated VPC, private RDS instance, and a Bastion host accessible exclusively via AWS SSM Session Manager.
 
 ---
@@ -25,7 +25,7 @@ Deploys a dedicated VPC, private RDS instance, and a Bastion host accessible exc
 │  │  Private Subnets (No internet route — fully isolated)        │  │
 │  │                                                              │  │
 │  │  ┌─────────▼──────────────────────────────────────────────┐ │  │
-│  │  │  RDS MySQL 8.0                                          │ │  │
+│  │  │  RDS MySQL 8.4                                          │ │  │
 │  │  │  ┌──────────────────────────────────────────────────┐  │ │  │
 │  │  │  │  db.t4g.micro  /  ap-south-1a  /  10.0.10.0/24  │  │ │  │
 │  │  │  └──────────────────────────────────────────────────┘  │ │  │
@@ -39,11 +39,11 @@ Deploys a dedicated VPC, private RDS instance, and a Bastion host accessible exc
 └─────────────────────────────────────────────────────────────────────┘
 
 Secrets: AWS SSM Parameter Store
-  /aurora-platform/dev/rds/master_password  (SecureString)
-  /aurora-platform/dev/rds/master_username  (String)
-  /aurora-platform/dev/rds/endpoint         (String)
+  /rds-platform/dev/rds/master_password  (SecureString)
+  /rds-platform/dev/rds/master_username  (String)
+  /rds-platform/dev/rds/endpoint         (String)
 
-State: S3 bucket (aurora-platform-tfstate-*)
+State: S3 bucket (rds-platform-tfstate-*)
 ```
 
 ---
@@ -83,7 +83,7 @@ GitLab CI/CD variables configured (Settings → CI/CD → Variables):
 | `AWS_SECRET_ACCESS_KEY` | IAM secret key | Yes | Yes |
 | `AWS_DEFAULT_REGION` | `ap-south-1` | Yes | No |
 | `TF_STATE_BUCKET` | S3 bucket name | Yes | No |
-| `TF_STATE_KEY` | `aurora-platform/dev/terraform.tfstate` | Yes | No |
+| `TF_STATE_KEY` | `rds-platform/dev/terraform.tfstate` | Yes | No |
 | `TF_STATE_REGION` | `ap-south-1` | Yes | No |
 
 ---
@@ -93,7 +93,7 @@ GitLab CI/CD variables configured (Settings → CI/CD → Variables):
 Run these AWS CLI commands once to create the S3 state bucket:
 
 ```bash
-BUCKET_NAME="aurora-platform-tfstate-YOUR-INITIALS-XXXX"
+BUCKET_NAME="rds-platform-tfstate-YOUR-INITIALS-XXXX"
 REGION="ap-south-1"
 
 # Create bucket
@@ -124,12 +124,12 @@ echo "Bucket $BUCKET_NAME ready."
 
 ```bash
 # 1. Clone and enter project
-cd terraform-aws-aurora-platform
+cd terraform-aws-rds-mysql-platform
 
 # 2. Initialise with S3 backend
 terraform init \
   -backend-config="bucket=YOUR_BUCKET_NAME" \
-  -backend-config="key=aurora-platform/dev/terraform.tfstate" \
+  -backend-config="key=rds-platform/dev/terraform.tfstate" \
   -backend-config="region=ap-south-1" \
   -backend-config="encrypt=true"
 
@@ -176,17 +176,17 @@ From inside the Bastion session:
 ```bash
 # 1. Get connection details from SSM Parameter Store
 ENDPOINT=$(aws ssm get-parameter \
-  --name "/aurora-platform/dev/rds/endpoint" \
+  --name "/rds-platform/dev/rds/endpoint" \
   --region ap-south-1 \
   --query "Parameter.Value" --output text)
 
 USERNAME=$(aws ssm get-parameter \
-  --name "/aurora-platform/dev/rds/master_username" \
+  --name "/rds-platform/dev/rds/master_username" \
   --region ap-south-1 \
   --query "Parameter.Value" --output text)
 
 PASSWORD=$(aws ssm get-parameter \
-  --name "/aurora-platform/dev/rds/master_password" \
+  --name "/rds-platform/dev/rds/master_password" \
   --region ap-south-1 \
   --with-decryption \
   --query "Parameter.Value" --output text)
@@ -278,7 +278,7 @@ The `destroyplan` artifact expires after 1 day. If it expires, re-trigger `destr
 
 ### Instance Class
 
-`db.t4g.micro` is the Free Tier eligible instance for RDS MySQL 8.0. The variable `db_instance_class` defaults to `db.t4g.micro`.
+`db.t4g.micro` is the Free Tier eligible instance for RDS MySQL 8.4. The variable `db_instance_class` defaults to `db.t4g.micro`.
 
 ### Password Management
 

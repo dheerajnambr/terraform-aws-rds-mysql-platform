@@ -1,11 +1,11 @@
-# Project: terraform-aws-aurora-platform
+# Project: terraform-aws-rds-mysql-platform
 
-Terraform infrastructure for Amazon RDS MySQL 8.0 on AWS (ap-south-1) with GitLab CI/CD.
+Terraform infrastructure for Amazon RDS MySQL 8.4 on AWS (ap-south-1) with GitLab CI/CD.
 
 ## Quick Context
 
 - Region: `ap-south-1` (Mumbai)
-- State bucket: `aurora-platform-tfstate-dinfratech-bucket1` (pre-exists, manually created)
+- State bucket: `rds-platform-tfstate-dinfratech-bucket1` (pre-exists, manually created)
 - Two git remotes: `gitlab` (primary CI/CD) and `origin` (GitHub mirror)
 - Always push to BOTH remotes after merging to main
 
@@ -13,8 +13,8 @@ Terraform infrastructure for Amazon RDS MySQL 8.0 on AWS (ap-south-1) with GitLa
 
 ```bash
 terraform init \
-  -backend-config="bucket=aurora-platform-tfstate-dinfratech-bucket1" \
-  -backend-config="key=aurora-platform/dev/terraform.tfstate" \
+  -backend-config="bucket=rds-platform-tfstate-dinfratech-bucket1" \
+  -backend-config="key=rds-platform/dev/terraform.tfstate" \
   -backend-config="region=ap-south-1" \
   -backend-config="encrypt=true"
 ```
@@ -68,7 +68,7 @@ git push origin main
 | `provider.tf` | AWS provider, default_tags |
 | `locals.tf` | name_prefix and all computed names |
 | `variables.tf` | All input variables |
-| `terraform.tfvars` | project_name + environment only |
+| `terraform.tfvars` | project_name, environment, db config, rds_parameters, extended support flag |
 | `vpc.tf` | VPC + IGW |
 | `subnets.tf` | 3 subnets, 2 route tables, associations |
 | `rds_security_group.tf` | RDS SG + ingress rule from bastion |

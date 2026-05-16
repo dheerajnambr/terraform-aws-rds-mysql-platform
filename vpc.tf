@@ -12,7 +12,7 @@ resource "aws_vpc" "main" {
 
 # ─── INTERNET GATEWAY ──────────────────────────────────────────────────────────
 # Required for Bastion outbound internet access (SSM agent, dnf package installs).
-# Aurora private subnets have no route to this gateway — they are fully isolated.
+# RDS private subnets have no route to this gateway — they are fully isolated.
 
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id

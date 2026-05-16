@@ -7,4 +7,7 @@ locals {
   igw_name     = "${local.name_prefix}-igw"
   rds_name     = "${local.name_prefix}-rds"
   bastion_name = "${local.name_prefix}-bastion"
+
+  # Derive parameter group family from engine version (e.g. "8.4" → "mysql8.4").
+  rds_pg_family = "mysql${join(".", slice(split(".", var.db_engine_version), 0, 2))}"
 }

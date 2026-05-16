@@ -65,7 +65,7 @@ variable "availability_zone_b" {
 variable "db_engine_version" {
   description = "MySQL engine version for the RDS instance."
   type        = string
-  default     = "8.0"
+  default     = "8.4"
 }
 
 variable "db_instance_class" {
@@ -89,6 +89,22 @@ variable "db_backup_retention_days" {
     condition     = var.db_backup_retention_days >= 0 && var.db_backup_retention_days <= 35
     error_message = "db_backup_retention_days must be between 0 and 35."
   }
+}
+
+variable "rds_parameters" {
+  description = "List of DB parameter group parameters. Each entry needs name, value, and apply_method."
+  type = list(object({
+    name         = string
+    value        = string
+    apply_method = string
+  }))
+  default = []
+}
+
+variable "enable_extended_support" {
+  description = "Enable RDS extended support for end-of-standard-support engine versions. Incurs additional cost."
+  type        = bool
+  default     = false
 }
 
 # --- BASTION HOST ---

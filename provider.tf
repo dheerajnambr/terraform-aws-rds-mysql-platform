@@ -6,7 +6,7 @@ provider "aws" {
       Project     = var.project_name
       Environment = var.environment
       ManagedBy   = "terraform"
-      Repository  = "terraform-aws-aurora-platform"
+      Repository  = "terraform-aws-rds-mysql-platform"
     }
   }
 }

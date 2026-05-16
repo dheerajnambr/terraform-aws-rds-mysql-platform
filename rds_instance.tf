@@ -64,8 +64,17 @@ resource "aws_db_subnet_group" "rds" {
 
 resource "aws_db_parameter_group" "rds" {
   name        = "${local.rds_name}-pg"
-  family      = "mysql8.0"
-  description = "RDS MySQL 8.0 parameter group"
+  family      = local.rds_pg_family
+  description = "RDS MySQL ${var.db_engine_version} parameter group"
+
+  dynamic "parameter" {
+    for_each = var.rds_parameters
+    content {
+      name         = parameter.value.name
+      value        = parameter.value.value
+      apply_method = parameter.value.apply_method
+    }
+  }
 
   tags = {
     Name = "${local.rds_name}-pg"
@@ -104,6 +113,8 @@ resource "aws_db_instance" "main" {
 
   auto_minor_version_upgrade = true
   apply_immediately          = true
+
+  lifecycle_support = var.enable_extended_support ? "open-source-rds-extended-support" : "open-source-rds-extended-support-disabled"
 
   tags = {
     Name = local.rds_name

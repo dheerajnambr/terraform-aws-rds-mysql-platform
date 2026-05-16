@@ -1,4 +1,4 @@
-# Aurora Platform — Advanced Technical Documentation
+# RDS MySQL Platform — Advanced Technical Documentation
 
 > **For use in Notion:** Paste this file into a Notion page. Mermaid diagrams render natively in Notion. All tables and code blocks render correctly. Use "Toggle" blocks to collapse sections.
 
@@ -28,9 +28,9 @@
 
 | Attribute | Value |
 |---|---|
-| **Project Name** | terraform-aws-aurora-platform |
+| **Project Name** | terraform-aws-rds-mysql-platform |
 | **AWS Region** | ap-south-1 (Mumbai) |
-| **Database** | Amazon RDS MySQL 8.0 |
+| **Database** | Amazon RDS MySQL 8.4 |
 | **Instance Type** | db.t4g.micro (Free Tier eligible) |
 | **IaC Tool** | Terraform >= 1.6.0 |
 | **CI/CD** | GitLab CI/CD |
@@ -69,7 +69,7 @@ graph TB
             end
 
             subgraph PRIVA["Private Subnet A 10.0.10.0/24 — ap-south-1a"]
-                RDS[RDS MySQL 8.0<br/>db.t4g.micro]
+                RDS[RDS MySQL 8.4<br/>db.t4g.micro]
             end
 
             subgraph PRIVB["Private Subnet B 10.0.11.0/24 — ap-south-1b"]
@@ -210,8 +210,8 @@ ACCESS FLOW:
 
 | SG Name | Inbound | Outbound | Notes |
 |---|---|---|---|
-| `aurora-platform-dev-bastion-sg` | **NONE** | 443/tcp → 0.0.0.0/0, 80/tcp → 0.0.0.0/0, 3306/tcp → rds-sg | Zero attack surface |
-| `aurora-platform-dev-rds-sg` | 3306/tcp ← bastion-sg | Default (all) | SG-to-SG, not CIDR |
+| `rds-platform-dev-bastion-sg` | **NONE** | 443/tcp → 0.0.0.0/0, 80/tcp → 0.0.0.0/0, 3306/tcp → rds-sg | Zero attack surface |
+| `rds-platform-dev-rds-sg` | 3306/tcp ← bastion-sg | Default (all) | SG-to-SG, not CIDR |
 
 ### Security Controls
 
@@ -251,9 +251,9 @@ CREDENTIALS EXPOSURE RISK: Near zero
 
 ```mermaid
 graph TD
-    EC2[EC2 Service Principal<br/>ec2.amazonaws.com] -->|assumes| ROLE[aws_iam_role<br/>aurora-platform-dev-bastion-role]
+    EC2[EC2 Service Principal<br/>ec2.amazonaws.com] -->|assumes| ROLE[aws_iam_role<br/>rds-platform-dev-bastion-role]
     ROLE --> POLICY[AWS Managed Policy<br/>AmazonSSMManagedInstanceCore]
-    ROLE --> PROFILE[aws_iam_instance_profile<br/>aurora-platform-dev-bastion-profile]
+    ROLE --> PROFILE[aws_iam_instance_profile<br/>rds-platform-dev-bastion-profile]
     PROFILE --> BASTION[Bastion EC2 Instance]
 ```
 
@@ -324,7 +324,7 @@ The operator running `aws ssm start-session` needs:
 | Parameter | Value | Reason |
 |---|---|---|
 | Engine | `mysql` | Standard RDS MySQL engine |
-| Engine Version | `8.0` | MySQL 8.0 |
+| Engine Version | `8.4` | MySQL 8.4 (latest) |
 | Instance Class | `db.t4g.micro` | Free Tier eligible |
 | Instance Count | 1 (single instance) | Simplicity; dev/learning environment |
 | Multi-AZ | No (single AZ) | Not required for dev; reduces cost |
@@ -335,12 +335,12 @@ The operator running `aws ssm start-session` needs:
 | Backup Retention | 0 days | Minimal for dev (adjustable) |
 | publicly_accessible | `false` | No public endpoint |
 
-> **RDS MySQL vs Aurora:** Standard RDS MySQL is used because Aurora MySQL is not available on AWS free-tier accounts. RDS MySQL 8.0 provides equivalent functionality for development and learning environments.
+> **RDS MySQL vs Aurora:** Standard RDS MySQL is used because Aurora MySQL is not available on AWS free-tier accounts. RDS MySQL 8.4 provides equivalent functionality for development and learning environments.
 
 ### RDS Instance Topology
 
 ```
-RDS MySQL 8.0 Instance: aurora-platform-dev-rds
+RDS MySQL 8.4 Instance: rds-platform-dev-rds
 ├── Instance: aws_db_instance.main
 │   ├── AZ: ap-south-1a
 │   ├── Subnet: private_a (10.0.10.0/24)
@@ -351,7 +351,7 @@ RDS MySQL 8.0 Instance: aurora-platform-dev-rds
     └── private_b (10.0.11.0/24 — ap-south-1b)  ← required by AWS (2 AZ minimum)
 
 Endpoint:
-  aurora-platform-dev-rds.xxxx.ap-south-1.rds.amazonaws.com:3306
+  rds-platform-dev-rds.xxxx.ap-south-1.rds.amazonaws.com:3306
 ```
 
 ---
@@ -364,9 +364,9 @@ Endpoint:
 graph LR
     TF[Terraform Apply] -->|generates| RP[random_password.rds_master]
     RP -->|result| RDS_INST[aws_db_instance.main<br/>master_password]
-    RP -->|result| SSM_P[SSM SecureString<br/>/aurora-platform/dev/rds/master_password]
-    RDS_INST -->|endpoint| SSM_E[SSM String<br/>/aurora-platform/dev/rds/endpoint]
-    RDS_INST -->|username| SSM_U[SSM String<br/>/aurora-platform/dev/rds/master_username]
+    RP -->|result| SSM_P[SSM SecureString<br/>/rds-platform/dev/rds/master_password]
+    RDS_INST -->|endpoint| SSM_E[SSM String<br/>/rds-platform/dev/rds/endpoint]
+    RDS_INST -->|username| SSM_U[SSM String<br/>/rds-platform/dev/rds/master_username]
     SSM_P -->|aws ssm get-parameter --with-decryption| OPS[Operator on Bastion]
     SSM_E -->|aws ssm get-parameter| OPS
     SSM_U -->|aws ssm get-parameter| OPS
@@ -377,9 +377,9 @@ graph LR
 
 | Path | Type | Contents |
 |---|---|---|
-| `/aurora-platform/dev/rds/master_password` | SecureString | RDS master password (KMS encrypted) |
-| `/aurora-platform/dev/rds/master_username` | String | `rdsadmin` |
-| `/aurora-platform/dev/rds/endpoint` | String | RDS instance FQDN |
+| `/rds-platform/dev/rds/master_password` | SecureString | RDS master password (KMS encrypted) |
+| `/rds-platform/dev/rds/master_username` | String | `rdsadmin` |
+| `/rds-platform/dev/rds/endpoint` | String | RDS instance FQDN |
 
 ### Password Rotation
 
@@ -394,7 +394,7 @@ terraform apply
 
 # 3. Verify new password works
 aws ssm get-parameter \
-  --name "/aurora-platform/dev/rds/master_password" \
+  --name "/rds-platform/dev/rds/master_password" \
   --with-decryption \
   --region ap-south-1 \
   --query "Parameter.Value" --output text
@@ -405,7 +405,7 @@ aws ssm get-parameter \
 ## 8. Terraform File Map
 
 ```
-terraform-aws-aurora-platform/
+terraform-aws-rds-mysql-platform/
 │
 ├── versions.tf          ── Terraform required_version, required_providers, S3 backend
 │                           Key: backend "s3" {} — partial config, filled at init
@@ -567,8 +567,8 @@ Pipeline uses `hashicorp/terraform:1.9` — pinned major version. Terraform prov
 ### State File Location
 
 ```
-S3 Bucket: aurora-platform-tfstate-YOUR-INITIALS-XXXX
-Key:       aurora-platform/dev/terraform.tfstate
+S3 Bucket: rds-platform-tfstate-YOUR-INITIALS-XXXX
+Key:       rds-platform/dev/terraform.tfstate
 Region:    ap-south-1
 Encrypted: true (SSE-S3 AES-256)
 Versioned: Yes
@@ -605,12 +605,12 @@ DynamoDB state locking is intentionally omitted because:
 
 # 1. Clone repository
 git clone <repo-url>
-cd terraform-aws-aurora-platform
+cd terraform-aws-rds-mysql-platform
 
 # 2. Initialise Terraform
 terraform init \
   -backend-config="bucket=YOUR_BUCKET" \
-  -backend-config="key=aurora-platform/dev/terraform.tfstate" \
+  -backend-config="key=rds-platform/dev/terraform.tfstate" \
   -backend-config="region=ap-south-1" \
   -backend-config="encrypt=true"
 
@@ -644,12 +644,12 @@ aws ssm start-session --target i-0abc1234def567890 --region ap-south-1
 
 # Retrieve credentials from SSM
 ENDPOINT=$(aws ssm get-parameter \
-  --name "/aurora-platform/dev/rds/endpoint" \
+  --name "/rds-platform/dev/rds/endpoint" \
   --region ap-south-1 \
   --query "Parameter.Value" --output text)
 
 PASSWORD=$(aws ssm get-parameter \
-  --name "/aurora-platform/dev/rds/master_password" \
+  --name "/rds-platform/dev/rds/master_password" \
   --region ap-south-1 \
   --with-decryption \
   --query "Parameter.Value" --output text)
@@ -663,13 +663,13 @@ mysql -h "$ENDPOINT" -P 3306 -u rdsadmin -p"$PASSWORD"
 ```bash
 # Via AWS CLI (from local machine)
 aws rds describe-db-instances \
-  --db-instance-identifier aurora-platform-dev-rds \
+  --db-instance-identifier rds-platform-dev-rds \
   --region ap-south-1 \
   --query "DBInstances[0].DBInstanceStatus"
 
 # Check instance details
 aws rds describe-db-instances \
-  --db-instance-identifier aurora-platform-dev-rds \
+  --db-instance-identifier rds-platform-dev-rds \
   --region ap-south-1 \
   --query "DBInstances[0].{ID:DBInstanceIdentifier,Status:DBInstanceStatus,AZ:AvailabilityZone,Endpoint:Endpoint.Address}"
 ```
@@ -809,7 +809,7 @@ The `destroyplan` artifact expires after 1 day. If expired, repeat from Step 1.
 - [ ] CI/CD variable `AWS_SECRET_ACCESS_KEY` configured (Protected + Masked)
 - [ ] CI/CD variable `AWS_DEFAULT_REGION` set to `ap-south-1`
 - [ ] CI/CD variable `TF_STATE_BUCKET` set to your bucket name
-- [ ] CI/CD variable `TF_STATE_KEY` set to `aurora-platform/dev/terraform.tfstate`
+- [ ] CI/CD variable `TF_STATE_KEY` set to `rds-platform/dev/terraform.tfstate`
 - [ ] CI/CD variable `TF_STATE_REGION` set to `ap-south-1`
 
 ### Deployment Readiness
@@ -887,7 +887,7 @@ aws s3api head-bucket --bucket YOUR_BUCKET_NAME
 **Check 2:** Is the RDS instance available?
 ```bash
 aws rds describe-db-instances \
-  --db-instance-identifier aurora-platform-dev-rds \
+  --db-instance-identifier rds-platform-dev-rds \
   --region ap-south-1 \
   --query "DBInstances[0].DBInstanceStatus"
 # Should return "available"
@@ -896,7 +896,7 @@ aws rds describe-db-instances \
 **Check 3:** Is the endpoint correct?
 ```bash
 aws ssm get-parameter \
-  --name "/aurora-platform/dev/rds/endpoint" \
+  --name "/rds-platform/dev/rds/endpoint" \
   --region ap-south-1 \
   --query "Parameter.Value" --output text
 ```
@@ -932,4 +932,4 @@ Do not split this across multiple lines using `\` — GitLab YAML parsing is not
 
 ---
 
-*Document version: 1.2 | Region: ap-south-1 | Engine: RDS MySQL 8.0*
+*Document version: 1.3 | Region: ap-south-1 | Engine: RDS MySQL 8.4 | Project: terraform-aws-rds-mysql-platform*

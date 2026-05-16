@@ -73,7 +73,7 @@ apply:
       when: manual
       allow_failure: false
   environment:
-    name: aws-aurora-platform-dev
+    name: aws-rds-platform-dev
 
 # --- DESTROY_PLAN STAGE - MANUAL ONLY ---
 # Step 1: Review what will be destroyed before committing.
@@ -113,5 +113,5 @@ destroy:
       when: manual
       allow_failure: false
   environment:
-    name: aws-aurora-platform-dev
+    name: aws-rds-platform-dev
     action: stop

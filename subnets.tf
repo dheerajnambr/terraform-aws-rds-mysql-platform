@@ -14,7 +14,7 @@ resource "aws_subnet" "public" {
   }
 }
 
-# Private subnet A — Aurora writer/reader instances in AZ-1.
+# Private subnet A — RDS instance in AZ-1.
 resource "aws_subnet" "private_a" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_a_cidr
@@ -26,7 +26,7 @@ resource "aws_subnet" "private_a" {
   }
 }
 
-# Private subnet B — Aurora reader instance in AZ-2 for Multi-AZ compatibility.
+# Private subnet B — AZ-2 required for RDS subnet group (2 AZ minimum).
 resource "aws_subnet" "private_b" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = var.private_subnet_b_cidr
@@ -56,7 +56,7 @@ resource "aws_route_table" "public" {
 }
 
 # Private route table — no default route by design (no NAT Gateway).
-# Aurora instances are fully private with no outbound internet path.
+# RDS instances are fully private with no outbound internet path.
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
