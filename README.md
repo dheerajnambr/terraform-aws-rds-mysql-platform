@@ -276,9 +276,18 @@ The `destroyplan` artifact expires after 1 day. If it expires, re-trigger `destr
 
 ## Important Notes
 
+### Configurable Variables (terraform.tfvars)
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `db_engine_version` | `"8.4"` | MySQL engine version |
+| `db_instance_class` | `"db.t4g.micro"` | RDS instance size. `db.t4g.micro` is Free Tier eligible |
+| `rds_parameters` | `[{max_connections=100}]` | Parameter group settings — add/remove entries as needed |
+| `enable_extended_support` | `false` | RDS extended support. Default off — enabling incurs extra cost |
+
 ### Instance Class
 
-`db.t4g.micro` is the Free Tier eligible instance for RDS MySQL 8.4. The variable `db_instance_class` defaults to `db.t4g.micro`.
+`db.t4g.micro` is the Free Tier eligible instance for RDS MySQL 8.4. Override in `terraform.tfvars` via `db_instance_class`.
 
 ### Password Management
 
@@ -310,7 +319,7 @@ This project uses standard RDS MySQL (single instance) instead of Aurora. Aurora
 | `provider.tf` | AWS provider config with default tags |
 | `locals.tf` | Naming conventions and computed values |
 | `variables.tf` | All input variables with types, descriptions, defaults |
-| `terraform.tfvars` | Minimal deployment-specific values |
+| `terraform.tfvars` | Project name, environment, engine version, instance class, parameters, extended support flag |
 | `vpc.tf` | VPC and Internet Gateway |
 | `subnets.tf` | 3 subnets, 2 route tables, associations |
 | `rds_security_group.tf` | RDS SG, inbound MySQL from Bastion only |

@@ -45,7 +45,7 @@
 - **No SSH from internet** — bastion access via SSM Session Manager (IAM-authenticated)
 - **No NAT Gateway** — eliminates $33+/month recurring cost
 - **Full destroy capability** — all resources teardown cleanly with `terraform destroy`
-- **Minimal tfvars** — only 2 values required to deploy
+- **Controlled tfvars** — engine version, instance class, parameters, and extended support all configurable per deployment
 
 ---
 
@@ -318,19 +318,21 @@ The operator running `aws ssm start-session` needs:
 
 ### Instance Configuration
 
-| Parameter | Value | Reason |
-|---|---|---|
-| Engine | `mysql` | Standard RDS MySQL engine |
-| Engine Version | `8.4` | MySQL 8.4 (latest) |
-| Instance Class | `db.t4g.micro` | Free Tier eligible |
-| Instance Count | 1 (single instance) | Simplicity; dev/learning environment |
-| Multi-AZ | No (single AZ) | Not required for dev; reduces cost |
-| Storage Encrypted | `true` | AWS-managed KMS (no extra cost) |
-| Enhanced Monitoring | `0` (disabled) | Cost reduction |
-| Deletion Protection | `false` | Allows `terraform destroy` |
-| Skip Final Snapshot | `true` | Allows `terraform destroy` |
-| Backup Retention | 0 days | Minimal for dev (adjustable) |
-| publicly_accessible | `false` | No public endpoint |
+| Parameter | Value | Controlled By | Reason |
+|---|---|---|---|
+| Engine | `mysql` | hardcoded | Standard RDS MySQL engine |
+| Engine Version | `8.4` | `db_engine_version` in tfvars | MySQL 8.4 (latest); change in tfvars |
+| Instance Class | `db.t4g.micro` | `db_instance_class` in tfvars | Free Tier eligible; change in tfvars |
+| Instance Count | 1 (single instance) | hardcoded | Simplicity; dev/learning environment |
+| Multi-AZ | No (single AZ) | hardcoded | Not required for dev; reduces cost |
+| Storage Encrypted | `true` | hardcoded | AWS-managed KMS (no extra cost) |
+| Enhanced Monitoring | `0` (disabled) | hardcoded | Cost reduction |
+| Deletion Protection | `false` | hardcoded | Allows `terraform destroy` |
+| Skip Final Snapshot | `true` | hardcoded | Allows `terraform destroy` |
+| Backup Retention | 0 days | `db_backup_retention_days` in tfvars | Minimal for dev (adjustable) |
+| publicly_accessible | `false` | hardcoded | No public endpoint |
+| Extended Support | Disabled | `enable_extended_support` in tfvars | Default off — avoids extra cost; set `true` to enable |
+| max_connections | `100` | `rds_parameters` in tfvars | Configurable via parameter group; add/remove entries in tfvars |
 
 > **RDS MySQL vs Aurora:** Standard RDS MySQL is used because Aurora MySQL is not available on AWS free-tier accounts. RDS MySQL 8.4 provides equivalent functionality for development and learning environments.
 
@@ -411,10 +413,12 @@ terraform-aws-rds-mysql-platform/
 │
 ├── locals.tf            ── DRY naming: name_prefix, vpc_name, rds_name, bastion_name
 │
-├── variables.tf         ── 12 variables: project, env, region, CIDRs, AZs, db config,
-│                           bastion config. All typed with descriptions and validations.
+├── variables.tf         ── 14 variables: project, env, region, CIDRs, AZs, db config,
+│                           bastion config, rds_parameters, enable_extended_support.
+│                           All typed with descriptions and validations.
 │
-├── terraform.tfvars     ── 2 lines only: project_name + environment. Safe to commit.
+├── terraform.tfvars     ── project_name, environment, db_engine_version, db_instance_class,
+│                           rds_parameters (list), enable_extended_support. Safe to commit.
 │
 ├── vpc.tf               ── aws_vpc (DNS enabled), aws_internet_gateway
 │
