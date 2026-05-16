@@ -1,0 +1,117 @@
+image:
+  name: hashicorp/terraform:1.9
+  entrypoint: [""]
+
+variables:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+  AWS_DEFAULT_REGION: "ap-south-1"
+
+stages:
+  - validate
+  - plan
+  - apply
+  - destroy_plan
+  - destroy
+
+# Shared init template - all jobs extend this
+.terraform_base:
+  before_script:
+    - terraform --version
+    - terraform init -reconfigure -input=false -backend-config="bucket=${TF_STATE_BUCKET}" -backend-config="key=${TF_STATE_KEY}" -backend-config="region=${TF_STATE_REGION}" -backend-config="encrypt=true"
+
+# --- VALIDATE STAGE ---
+
+fmt_check:
+  stage: validate
+  extends: .terraform_base
+  script:
+    - terraform fmt -check -recursive -diff
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+validate:
+  stage: validate
+  extends: .terraform_base
+  script:
+    - terraform validate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# --- PLAN STAGE ---
+
+plan:
+  stage: plan
+  extends: .terraform_base
+  script:
+    - terraform plan -out=tfplan -input=false
+  artifacts:
+    name: "tfplan-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - tfplan
+    expire_in: 1 day
+    when: always
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# --- APPLY STAGE - MANUAL ONLY ---
+
+apply:
+  stage: apply
+  extends: .terraform_base
+  script:
+    - terraform apply -input=false tfplan
+    - terraform output
+  needs:
+    - job: plan
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: false
+  environment:
+    name: aws-aurora-platform-dev
+
+# --- DESTROY_PLAN STAGE - MANUAL ONLY ---
+# Step 1: Review what will be destroyed before committing.
+# Click this job first, inspect the plan output in the logs, then trigger destroy.
+
+destroy_plan:
+  stage: destroy_plan
+  extends: .terraform_base
+  script:
+    - terraform plan -destroy -out=destroyplan -input=false
+  artifacts:
+    name: "destroyplan-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - destroyplan
+    expire_in: 1 day
+    when: always
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: false
+  needs: []
+
+# --- DESTROY STAGE - MANUAL ONLY ---
+# Step 2: Executes the destroy plan produced above.
+# Requires destroy_plan artifact - will not run if destroy_plan was not triggered.
+
+destroy:
+  stage: destroy
+  extends: .terraform_base
+  script:
+    - terraform apply -input=false destroyplan
+  needs:
+    - job: destroy_plan
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+      allow_failure: false
+  environment:
+    name: aws-aurora-platform-dev
+    action: stop

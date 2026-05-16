@@ -1,0 +1,43 @@
+# Terraform state files (never commit - contain sensitive data)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Terraform plan output (binary, contains sensitive values)
+tfplan
+*.tfplan
+
+# Terraform working directory (provider binaries, modules cache)
+.terraform/
+
+# Terraform lock file should be committed - do NOT gitignore
+# .terraform.lock.hcl
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Override files (local dev overrides - not for team sharing)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI config
+.terraformrc
+terraform.rc
+
+# Sensitive variable files (never commit files ending in .secret.tfvars)
+*.secret.tfvars
+*.sensitive.tfvars
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.idea/
+.vscode/
+*.iml
