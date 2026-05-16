@@ -5,6 +5,18 @@ Deploys a dedicated VPC, private RDS instance, and a Bastion host accessible exc
 
 ---
 
+> ⚠️ **For Learning & Testing Only**
+>
+> - Run `terraform destroy` immediately after testing — do not leave resources running
+> - Use `db.t4g.micro` — smallest Free Tier eligible instance
+> - Keep `deletion_protection = false` and `db_backup_retention_days = 0`
+> - Keep `enable_extended_support = false` — enabling it incurs extra cost
+> - Free tier applies to new AWS accounts only (first 12 months)
+>
+> **You are responsible for all AWS costs. Always check AWS Cost Explorer after testing.**
+
+---
+
 ## Architecture Overview
 
 ```

@@ -4,6 +4,21 @@
 
 ---
 
+> ⚠️ **For Learning & Testing Only**
+>
+> This project is designed for learning Terraform, AWS RDS, and GitLab CI/CD. Follow these guidelines to **avoid unexpected AWS charges**:
+>
+> - Run `terraform destroy` immediately after testing — do not leave resources running
+> - Use the smallest supported instance: `db.t4g.micro`
+> - Keep `deletion_protection = false` to allow clean teardown
+> - Keep `db_backup_retention_days = 0` — no automated backups or snapshots
+> - Keep `enable_extended_support = false` — extended support incurs additional cost
+> - Free tier applies to **new AWS accounts only** (first 12 months, 750 hrs/month)
+>
+> **You are responsible for all AWS costs incurred. Always verify AWS Cost Explorer after each session.**
+
+---
+
 ## Table of Contents
 
 1. [Project Summary](#1-project-summary)
@@ -21,6 +36,7 @@
 13. [Destroy Runbook](#13-destroy-runbook)
 14. [Prerequisites Checklist](#14-prerequisites-checklist)
 15. [Troubleshooting Guide](#15-troubleshooting-guide)
+16. [Full Setup Guide — AWS, GitHub & GitLab](#16-full-setup-guide--aws-github--gitlab)
 
 ---
 
@@ -924,4 +940,206 @@ Do not split this across multiple lines using `\` — GitLab YAML parsing is not
 
 ---
 
-*Document version: 1.3 | Region: ap-south-1 | Engine: RDS MySQL 8.4 | Project: terraform-aws-rds-mysql-platform*
+*Document version: 1.4 | Region: ap-south-1 | Engine: RDS MySQL 8.4 | Project: terraform-aws-rds-mysql-platform*
+
+---
+
+## 16. Full Setup Guide — AWS, GitHub & GitLab
+
+Complete walkthrough for setting up this project from scratch.
+
+---
+
+### Phase 1 — AWS Account & IAM Setup
+
+#### Step 1 — Create IAM User
+
+1. Sign in to AWS Console → **IAM → Users → Create User**
+2. Username: `terraform-user`
+3. Attach policy directly: **AdministratorAccess**
+4. Click **Create User**
+
+> **Note:** AdministratorAccess is used here for simplicity in a learning environment. In production, scope permissions to only the services required (ec2, rds, iam, ssm, s3).
+
+#### Step 2 — Create Access Keys
+
+1. Open the `terraform-user` → **Security Credentials** tab
+2. Click **Create Access Key**
+3. Use case: **CLI**
+4. Save both values securely:
+
+```
+Access Key ID:     AKIAIOSFODNN7EXAMPLE
+Secret Access Key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
+> These are shown **only once**. Store in a password manager.
+
+#### Step 3 — Configure AWS CLI Locally
+
+```bash
+aws configure
+```
+
+Enter when prompted:
+
+```
+AWS Access Key ID:     <your access key>
+AWS Secret Access Key: <your secret key>
+Default region name:   ap-south-1
+Default output format: json
+```
+
+#### Step 4 — Verify Authentication
+
+```bash
+aws sts get-caller-identity
+```
+
+Expected output:
+
+```json
+{
+  "UserId": "AIDAIOSFODNN7EXAMPLE",
+  "Account": "123456789012",
+  "Arn": "arn:aws:iam::123456789012:user/terraform-user"
+}
+```
+
+#### Step 5 — Create S3 State Bucket
+
+```bash
+BUCKET_NAME="rds-platform-tfstate-YOUR-INITIALS-XXXX"
+REGION="ap-south-1"
+
+aws s3api create-bucket \
+  --bucket "$BUCKET_NAME" \
+  --region "$REGION" \
+  --create-bucket-configuration LocationConstraint="$REGION"
+
+aws s3api put-bucket-versioning \
+  --bucket "$BUCKET_NAME" \
+  --versioning-configuration Status=Enabled
+
+aws s3api put-public-access-block \
+  --bucket "$BUCKET_NAME" \
+  --public-access-block-configuration \
+    "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"
+```
+
+---
+
+### Phase 2 — Repository Setup (GitHub + GitLab)
+
+#### Step 6 — Create GitHub Repository
+
+1. Go to **GitHub → New Repository**
+2. Name: `terraform-aws-rds-mysql-platform`
+3. Visibility: Private (recommended)
+4. Do **not** initialise with README — the repo already has files
+
+Clone and enter:
+
+```bash
+git clone git@github.com:YOUR_USERNAME/terraform-aws-rds-mysql-platform.git
+cd terraform-aws-rds-mysql-platform
+```
+
+#### Step 7 — Create GitLab Project (Import from GitHub)
+
+1. Go to **GitLab → Groups → Your Group → New Project**
+2. Select **Import Project → GitHub**
+3. Authorise GitLab to access GitHub if prompted
+4. Select the `terraform-aws-rds-mysql-platform` repo
+5. GitLab will mirror all branches and commits
+
+#### Step 8 — Add GitLab as a Git Remote
+
+Once the GitLab project is created, copy the SSH clone URL from GitLab and add it as a remote:
+
+```bash
+git remote add gitlab git@gitlab.com:YOUR_GROUP/terraform-aws-rds-mysql-platform.git
+
+# Verify both remotes exist
+git remote -v
+```
+
+Expected output:
+
+```
+gitlab  git@gitlab.com:YOUR_GROUP/terraform-aws-rds-mysql-platform.git (fetch)
+gitlab  git@gitlab.com:YOUR_GROUP/terraform-aws-rds-mysql-platform.git (push)
+origin  git@github.com:YOUR_USERNAME/terraform-aws-rds-mysql-platform.git (fetch)
+origin  git@github.com:YOUR_USERNAME/terraform-aws-rds-mysql-platform.git (push)
+```
+
+Push to both remotes after every merge:
+
+```bash
+git push origin main
+git push gitlab main
+```
+
+---
+
+### Phase 3 — GitLab CI/CD Variables
+
+#### Step 9 — Add AWS Credentials
+
+Navigate to: **GitLab Project → Settings → CI/CD → Variables → Add Variable**
+
+| Variable | Value | Masked | Protected |
+|---|---|---|---|
+| `AWS_ACCESS_KEY_ID` | Your IAM access key | Yes | No |
+| `AWS_SECRET_ACCESS_KEY` | Your IAM secret key | Yes | No |
+| `AWS_DEFAULT_REGION` | `ap-south-1` | No | No |
+
+> **Important:** Set **Protected = No** so the variable is available on all branches, not just protected branches.
+
+#### Step 10 — Add Terraform State Variables
+
+| Variable | Value | Masked | Protected |
+|---|---|---|---|
+| `TF_STATE_BUCKET` | `rds-platform-tfstate-YOUR-INITIALS-XXXX` | No | No |
+| `TF_STATE_KEY` | `rds-platform/dev/terraform.tfstate` | No | No |
+| `TF_STATE_REGION` | `ap-south-1` | No | No |
+
+---
+
+### Phase 4 — Run the Pipeline
+
+#### Step 11 — Trigger Pipeline
+
+Push any commit to `main`:
+
+```bash
+git push gitlab main
+```
+
+#### Step 12 — Watch Pipeline
+
+1. Go to **GitLab → CI/CD → Pipelines**
+2. Click the running pipeline
+3. `validate` and `plan` stages run automatically
+4. Review the `plan` job output — confirms what Terraform will create
+
+#### Step 13 — Apply (Manual)
+
+1. In the pipeline view, click **▶ play** next to the `apply` job
+2. Monitor the job log — RDS creation takes 5–10 minutes
+3. On success, outputs are printed (bastion instance ID, SSM connect command)
+
+#### Step 14 — Destroy When Done
+
+> **Always destroy after testing to avoid ongoing charges.**
+
+Option A — via CLI:
+```bash
+terraform destroy
+```
+
+Option B — via GitLab CI/CD:
+1. Click **▶ play** on `destroy_plan` → review the destruction plan in logs
+2. Click **▶ play** on `destroy` → executes the plan
+
+Confirm `Destroy complete!` in the job log.

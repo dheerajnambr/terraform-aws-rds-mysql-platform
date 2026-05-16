@@ -77,6 +77,8 @@ git push origin main
 | `bastion_iam.tf` | IAM role, SSM policy, instance profile |
 | `bastion_instance.tf` | AMI data source, EC2 instance |
 | `outputs.tf` | Outputs including ssm_connect_command, mysql_connect_command |
+| `aws-rds-gitlab-cicd-guide.md` | Full technical doc + setup guide (AWS IAM, GitHub, GitLab CI/CD, variables) |
+| `README.md` | Quick-start, architecture diagram, deployment steps, file reference |
 
 ## Post-Apply: Connect to Bastion
 
